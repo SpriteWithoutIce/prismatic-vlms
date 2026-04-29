@@ -25,8 +25,6 @@ class ModelConfig(ChoiceRegistry):
     # Pretrained Backbones
     vision_backbone_id: str                                 # Pretrained Visual Featurizer (from TIMM) to load
     llm_backbone_id: str                                    # Pretrained LLM (from HF Transformers) to load
-    vision_checkpoint_path: Optional[str] = None           # Optional local checkpoint path for custom vision backbones
-    llm_local_path: Optional[str] = None                   # Optional local model path for custom/local LLM loading
 
     # Backbone Parameters
     image_resize_strategy: str                              # Resizing strategy in < crop | letterbox | corner-pad >
@@ -71,6 +69,10 @@ class ModelConfig(ChoiceRegistry):
     # Enable Traditional Mixed Precision Training via Torch Native AMP (`autocast`)
     enable_mixed_precision_training: bool = True            # Whether to enable mixed precision training
     reduce_in_full_precision: bool = False                  # Whether to run gradient reduction in FP32
+
+    # Optional local paths for custom backbones
+    vision_checkpoint_path: Optional[str] = None            # Optional local checkpoint path for custom vision backbones
+    llm_local_path: Optional[str] = None                    # Optional local model path for custom/local LLM loading
 
     # fmt: on
 
