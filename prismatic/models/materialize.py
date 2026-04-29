@@ -9,7 +9,13 @@ from typing import Optional, Tuple
 
 from transformers import PreTrainedTokenizerBase
 
-from prismatic.models.backbones.llm import LLaMa2LLMBackbone, LLMBackbone, MistralLLMBackbone, PhiLLMBackbone
+from prismatic.models.backbones.llm import (
+    LLaMa2LLMBackbone,
+    LLMBackbone,
+    MistralLLMBackbone,
+    PhiLLMBackbone,
+    Qwen25LLMBackbone,
+)
 from prismatic.models.backbones.vision import (
     CLIPViTBackbone,
     DinoCLIPViTBackbone,
@@ -18,6 +24,7 @@ from prismatic.models.backbones.vision import (
     ImageTransform,
     IN1KViTBackbone,
     SigLIPViTBackbone,
+    VJEPA21ViTBackbone,
     VisionBackbone,
 )
 from prismatic.models.vlms import PrismaticVLM
@@ -47,6 +54,12 @@ VISION_BACKBONES = {
     # === Fused Backbones ===
     "dinoclip-vit-l-336px": {"cls": DinoCLIPViTBackbone, "kwargs": {"default_image_size": 336}},
     "dinosiglip-vit-so-384px": {"cls": DinoSigLIPViTBackbone, "kwargs": {"default_image_size": 384}},
+
+    # === V-JEPA 2.1 Backbones ===
+    "vjepa2_1-vit-b-384px": {"cls": VJEPA21ViTBackbone, "kwargs": {"default_image_size": 384}},
+    "vjepa2_1-vit-l-384px": {"cls": VJEPA21ViTBackbone, "kwargs": {"default_image_size": 384}},
+    "vjepa2_1-vit-g-384px": {"cls": VJEPA21ViTBackbone, "kwargs": {"default_image_size": 384}},
+    "vjepa2_1-vit-G-384px": {"cls": VJEPA21ViTBackbone, "kwargs": {"default_image_size": 384}},
 }
 
 
@@ -70,20 +83,30 @@ LLM_BACKBONES = {
 
     # === Phi-2 Backbone ===
     "phi-2-3b": {"cls": PhiLLMBackbone, "kwargs": {}},
+
+    # === Qwen2.5 Backbone ===
+    "qwen25-0_5b-pure": {"cls": Qwen25LLMBackbone, "kwargs": {}},
+    "qwen25-0_5b-extra": {"cls": Qwen25LLMBackbone, "kwargs": {"num_extra_tokens": 256}},
+    "qwen25-1_5b-pure": {"cls": Qwen25LLMBackbone, "kwargs": {}},
+    "qwen25-3b-pure": {"cls": Qwen25LLMBackbone, "kwargs": {}},
+    "qwen25-7b-pure": {"cls": Qwen25LLMBackbone, "kwargs": {}},
 }
 
 # fmt: on
 
 
 def get_vision_backbone_and_transform(
-    vision_backbone_id: str, image_resize_strategy: str
+    vision_backbone_id: str,
+    image_resize_strategy: str,
+    checkpoint_path: Optional[str] = None,
 ) -> Tuple[VisionBackbone, ImageTransform]:
     """Instantiate a Vision Backbone, returning both the nn.Module wrapper class and default Image Transform."""
     if vision_backbone_id in VISION_BACKBONES:
         vision_cfg = VISION_BACKBONES[vision_backbone_id]
-        vision_backbone: VisionBackbone = vision_cfg["cls"](
-            vision_backbone_id, image_resize_strategy, **vision_cfg["kwargs"]
-        )
+        vision_kwargs = dict(vision_cfg["kwargs"])
+        if checkpoint_path is not None:
+            vision_kwargs["checkpoint_path"] = checkpoint_path
+        vision_backbone: VisionBackbone = vision_cfg["cls"](vision_backbone_id, image_resize_strategy, **vision_kwargs)
         image_transform = vision_backbone.get_image_transform()
         return vision_backbone, image_transform
 
@@ -94,6 +117,7 @@ def get_vision_backbone_and_transform(
 def get_llm_backbone_and_tokenizer(
     llm_backbone_id: str,
     llm_max_length: int = 2048,
+    llm_path: Optional[str] = None,
     hf_token: Optional[str] = None,
     inference_mode: bool = False,
 ) -> Tuple[LLMBackbone, PreTrainedTokenizerBase]:
@@ -102,6 +126,7 @@ def get_llm_backbone_and_tokenizer(
         llm_backbone: LLMBackbone = llm_cfg["cls"](
             llm_backbone_id,
             llm_max_length=llm_max_length,
+            llm_path=llm_path,
             hf_token=hf_token,
             inference_mode=inference_mode,
             **llm_cfg["kwargs"],

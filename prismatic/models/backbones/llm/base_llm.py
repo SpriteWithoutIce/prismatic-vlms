@@ -15,7 +15,7 @@ utilities around different types of decoding/generation strategies.
 import warnings
 from abc import ABC, abstractmethod
 from functools import partial
-from typing import Callable, List, Optional, Type
+from typing import Callable, List, Optional, Sequence, Type
 
 import torch
 import torch.nn as nn
@@ -85,6 +85,10 @@ class LLMBackbone(nn.Module, ABC):
     def half_precision_dtype(self) -> torch.dtype: ...
 
     @property
+    @abstractmethod
+    def last_layer_finetune_modules(self) -> Sequence[nn.Module]: ...
+
+    @property
     def embed_dim(self) -> int:
         return self.llm.config.hidden_size
 
@@ -101,6 +105,7 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
         llm_family: str,
         llm_cls: Type[PreTrainedModel],
         hf_hub_path: str,
+        llm_path: Optional[str] = None,
         llm_max_length: int = 2048,
         hf_token: Optional[str] = None,
         inference_mode: bool = False,
@@ -110,13 +115,14 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
         self.llm_family = llm_family
         self.llm_max_length = llm_max_length
         self.inference_mode = inference_mode
+        self.llm_path = hf_hub_path if llm_path is None else llm_path
 
         # Initialize LLM (downloading from HF Hub if necessary) --> `llm_cls` is the actual {Model}ForCausalLM class!
         #   => Note: We're eschewing use of the AutoModel API so that we can be more explicit about LLM-specific details
         if not self.inference_mode:
-            overwatch.info(f"Loading [bold]{llm_family}[/] LLM from [underline]`{hf_hub_path}`[/]", ctx_level=1)
+            overwatch.info(f"Loading [bold]{llm_family}[/] LLM from [underline]`{self.llm_path}`[/]", ctx_level=1)
             self.llm = llm_cls.from_pretrained(
-                hf_hub_path,
+                self.llm_path,
                 token=hf_token,
                 use_flash_attention_2=use_flash_attention_2 if not self.inference_mode else False,
                 # The following parameters are set to prevent `UserWarnings` from HF; we want greedy decoding!
@@ -127,9 +133,14 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
 
         # [Contract] `inference_mode` means we're loading from a pretrained checkpoint; no need to load base weights!
         else:
-            overwatch.info(f"Building empty [bold]{llm_family}[/] LLM from [underline]`{hf_hub_path}`[/]", ctx_level=1)
-            llm_config = AutoConfig.from_pretrained(hf_hub_path, token=hf_token)
-            self.llm = llm_cls._from_config(llm_config)
+            overwatch.info(f"Building empty [bold]{llm_family}[/] LLM from [underline]`{self.llm_path}`[/]", ctx_level=1)
+            llm_config = AutoConfig.from_pretrained(self.llm_path, token=hf_token)
+
+            # versioning difference for prismatic models.
+            if hasattr(llm_cls, "from_config"):
+                self.llm = llm_cls.from_config(llm_config)
+            else:
+                self.llm = llm_cls._from_config(llm_config)
 
         # Lightweight Handling (with extended explanation) for setting some LLM Parameters
         #   => Set `decoder.use_cache = False` --> incompatible with gradient checkpointing (+ training in general)
@@ -146,14 +157,8 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
         # Load (Fast) Tokenizer
         overwatch.info(f"Loading [bold]{llm_family}[/] (Fast) Tokenizer via the AutoTokenizer API", ctx_level=1)
         self.tokenizer = AutoTokenizer.from_pretrained(
-            hf_hub_path,
-            model_max_length=self.llm_max_length,
-            token=hf_token,
-            padding_side="right",
+            self.llm_path, model_max_length=self.llm_max_length, token=hf_token, padding_side="right"
         )
-
-        # Explicitly verify that Tokenizer padding_side is set to right for training!
-        assert self.tokenizer.padding_side == "right", "Tokenizer `padding_side` is not set to `right`!"
 
         # Validation =>> Our VLM logic currently operates under the assumption that the tokenization of a new input
         #                starts with a <BOS> token unless `add_special_tokens = False`; for these models, we empirically
@@ -169,6 +174,11 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
             #       this works well with base LLM generation.
             #   =>> Like Llama-2 Tokenizers -- we'll add a special PAD token for training purposes.
             "phi-2-3b",
+            "qwen25-0_5b-pure",
+            "qwen25-0_5b-extra",
+            "qwen25-1_5b-pure",
+            "qwen25-3b-pure",
+            "qwen25-7b-pure",
         }
         if self.identifier in SPECIAL_CASES:
             return

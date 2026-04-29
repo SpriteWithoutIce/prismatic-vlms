@@ -134,7 +134,12 @@ def pretrain(cfg: PretrainConfig) -> None:
 
     # Start =>> Build Directories and Set Randomness
     overwatch.info('"Life is like a prism; what you see depends on how you turn the glass."', ctx_level=1)
-    hf_token = cfg.hf_token.read_text().strip() if isinstance(cfg.hf_token, Path) else os.environ[cfg.hf_token]
+    hf_token = None
+    if isinstance(cfg.hf_token, Path):
+        if cfg.hf_token.exists():
+            hf_token = cfg.hf_token.read_text().strip()
+    elif cfg.hf_token in os.environ:
+        hf_token = os.environ[cfg.hf_token]
     worker_init_fn = set_global_seed(cfg.seed, get_worker_init_fn=True)
     os.makedirs(run_dir := (cfg.run_root_dir / cfg.run_id), exist_ok=True)
     os.makedirs(cfg.run_root_dir / cfg.run_id / "checkpoints", exist_ok=True)
@@ -148,13 +153,18 @@ def pretrain(cfg: PretrainConfig) -> None:
     # Load Vision Backbone --> on CPU, in Full Precision (initializing model, image_transform via TIMM)
     overwatch.info(f"Loading Vision Backbone [bold]{cfg.model.vision_backbone_id}[/] via TIMM ")
     vision_backbone, image_transform = get_vision_backbone_and_transform(
-        cfg.model.vision_backbone_id, image_resize_strategy=cfg.model.image_resize_strategy
+        cfg.model.vision_backbone_id,
+        image_resize_strategy=cfg.model.image_resize_strategy,
+        checkpoint_path=cfg.model.vision_checkpoint_path,
     )
 
     # Load LLM Backbone --> on CPU, in Full Precision (initializing Tokenizer + handling special tokens if necessary)
     overwatch.info(f"Loading Pretrained LLM [bold]{cfg.model.llm_backbone_id}[/] via HF Transformers")
     llm_backbone, tokenizer = get_llm_backbone_and_tokenizer(
-        cfg.model.llm_backbone_id, llm_max_length=cfg.model.llm_max_length, hf_token=hf_token
+        cfg.model.llm_backbone_id,
+        llm_max_length=cfg.model.llm_max_length,
+        llm_path=cfg.model.llm_local_path,
+        hf_token=hf_token,
     )
 
     # Create VLM => wraps `vision_backbone` and `llm`
