@@ -81,9 +81,11 @@ class FSDPStrategy(TrainingStrategy):
 
         # FSDP-Specific Parameters
         if sharding_strategy == "shard-grad-op":
-            self.fsdp_sharding_strategy = ShardingStrategy._HYBRID_SHARD_ZERO2
+            # Use standard FSDP sharding modes here. Hybrid sharding creates per-node subgroups based on the
+            # visible device count, which breaks when `torchrun --nproc-per-node` is smaller than the CUDA world.
+            self.fsdp_sharding_strategy = ShardingStrategy.SHARD_GRAD_OP
         elif sharding_strategy == "full-shard":
-            self.fsdp_sharding_strategy = ShardingStrategy.HYBRID_SHARD
+            self.fsdp_sharding_strategy = ShardingStrategy.FULL_SHARD
         else:
             raise ValueError(f"FSDP Sharding Strategy {sharding_strategy} is not supported!")
 

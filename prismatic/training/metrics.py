@@ -63,36 +63,46 @@ class WeightsBiasesTracker:
 
         # Get W&B-Specific Initialization Parameters
         self.project, self.entity, self.group, self.wandb_dir = project, entity, group, self.run_dir
+        self.enabled = False
 
         # Call W&B.init()
         self.initialize()
 
     @overwatch.rank_zero_only
     def initialize(self) -> None:
-        wandb.init(
-            name=self.run_id,
-            dir=self.wandb_dir,
-            config=self.hparams,
-            project=self.project,
-            entity=self.entity,
-            group=self.group,
-        )
+        try:
+            wandb.init(
+                name=self.run_id,
+                dir=self.wandb_dir,
+                config=self.hparams,
+                project=self.project,
+                entity=self.entity,
+                group=self.group,
+            )
+            self.enabled = True
+        except Exception as e:
+            overwatch.warning(
+                "W&B initialization failed; continuing with remaining trackers only. "
+                f"project={self.project}, entity={self.entity}, error={type(e).__name__}: {e}"
+            )
+            self.enabled = False
 
     @overwatch.rank_zero_only
     def write_hyperparameters(self) -> None:
-        wandb.config = self.hparams
+        if self.enabled:
+            wandb.config = self.hparams
 
     @overwatch.rank_zero_only
     def write(self, global_step: int, metrics: Dict[str, Union[int, float]]) -> None:
-        wandb.log(metrics, step=global_step)
+        if self.enabled:
+            wandb.log(metrics, step=global_step)
 
-    @staticmethod
-    def finalize() -> None:
-        if overwatch.is_rank_zero():
+    def finalize(self) -> None:
+        if self.enabled and overwatch.is_rank_zero():
             wandb.finish()
 
-        # A job gets 210 seconds to get its affairs in order
-        time.sleep(210)
+            # A job gets 210 seconds to get its affairs in order
+            time.sleep(210)
 
 
 # === Core Metrics Container :: Initializes Trackers => Compiles/Pushes Metrics ===
