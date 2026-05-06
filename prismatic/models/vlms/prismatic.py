@@ -370,7 +370,7 @@ class PrismaticVLM(VLM):
                 patch_features = self.vision_backbone({k: pixel_values[k][multimodal_indices] for k in pixel_values})
             else:
                 patch_features = self.vision_backbone(pixel_values[multimodal_indices])
-
+        # print("patch_features.shape =", patch_features.shape)
         # Projection Logic :: [bsz, num_patches, llm_embed_dim] =>> num_patches = (2 *) (256 + 1) for ViT-L + CLS
         projected_patch_embeddings = self.projector(patch_features)
         projected_patch_attention_mask = None

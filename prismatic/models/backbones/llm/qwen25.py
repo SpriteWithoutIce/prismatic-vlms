@@ -46,7 +46,7 @@ class Qwen25LLMBackbone(HFCausalLLMBackbone):
         llm_path: Optional[str] = None,
         hf_token: Optional[str] = None,
         inference_mode: bool = False,
-        use_flash_attention_2: bool = True,
+        use_flash_attention_2: bool = False,
         num_extra_tokens: int = 0,
     ) -> None:
         super().__init__(

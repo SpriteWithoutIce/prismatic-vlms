@@ -144,7 +144,7 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
                     try:
                         self.llm = llm_cls.from_pretrained(
                             self.llm_path,
-                            use_flash_attention_2=True,
+                            use_flash_attention_2=False,
                             **pretrained_kwargs,
                         )
                     except TypeError:
