@@ -121,15 +121,40 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
         #   => Note: We're eschewing use of the AutoModel API so that we can be more explicit about LLM-specific details
         if not self.inference_mode:
             overwatch.info(f"Loading [bold]{llm_family}[/] LLM from [underline]`{self.llm_path}`[/]", ctx_level=1)
-            self.llm = llm_cls.from_pretrained(
-                self.llm_path,
-                token=hf_token,
-                use_flash_attention_2=use_flash_attention_2 if not self.inference_mode else False,
+            pretrained_kwargs = {
+                "token": hf_token,
                 # The following parameters are set to prevent `UserWarnings` from HF; we want greedy decoding!
-                do_sample=False,
-                temperature=1.0,
-                top_p=1.0,
-            )
+                "do_sample": False,
+                "temperature": 1.0,
+                "top_p": 1.0,
+            }
+
+            if use_flash_attention_2:
+                # HF has changed the public API over time:
+                #   - older versions accepted `use_flash_attention_2=True`
+                #   - newer versions prefer `attn_implementation="flash_attention_2"`
+                # Try the newer path first, then gracefully fall back.
+                try:
+                    self.llm = llm_cls.from_pretrained(
+                        self.llm_path,
+                        attn_implementation="flash_attention_2",
+                        **pretrained_kwargs,
+                    )
+                except TypeError:
+                    try:
+                        self.llm = llm_cls.from_pretrained(
+                            self.llm_path,
+                            use_flash_attention_2=False,
+                            **pretrained_kwargs,
+                        )
+                    except TypeError:
+                        overwatch.info(
+                            "Flash Attention 2 load args not supported by this Transformers version; falling back.",
+                            ctx_level=1,
+                        )
+                        self.llm = llm_cls.from_pretrained(self.llm_path, **pretrained_kwargs)
+            else:
+                self.llm = llm_cls.from_pretrained(self.llm_path, **pretrained_kwargs)
 
         # [Contract] `inference_mode` means we're loading from a pretrained checkpoint; no need to load base weights!
         else:
