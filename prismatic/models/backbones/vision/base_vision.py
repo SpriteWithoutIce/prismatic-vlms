@@ -11,6 +11,7 @@ Transformer model for feature extraction.
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Protocol, Tuple, Union
 
 import timm
@@ -99,25 +100,30 @@ class TimmViTBackbone(VisionBackbone, ABC):
         image_resize_strategy: str,
         default_image_size: int = 224,
         override_act_layer: Optional[str] = None,
+        local_path: Optional[str] = None,
     ) -> None:
         super().__init__(vision_backbone_id, image_resize_strategy, default_image_size=default_image_size)
         self.timm_path_or_url = timm_path_or_url
         self.override_act_layer = override_act_layer
+        self.local_path = local_path
         self.dtype = torch.bfloat16
 
         # Initialize Featurizer (ViT) by downloading from HF / TIMM Hub if necessary
+        pretrained = local_path is None
         if self.override_act_layer is None:
             self.featurizer: VisionTransformer = timm.create_model(
-                self.timm_path_or_url, pretrained=True, num_classes=0, img_size=self.default_image_size
+                self.timm_path_or_url, pretrained=pretrained, num_classes=0, img_size=self.default_image_size
             )
         else:
             self.featurizer: VisionTransformer = timm.create_model(
                 self.timm_path_or_url,
-                pretrained=True,
+                pretrained=pretrained,
                 num_classes=0,
                 img_size=self.default_image_size,
                 act_layer=self.override_act_layer,
             )
+        if local_path is not None:
+            self._load_local_weights(local_path)
         self.featurizer.eval()
 
         # Monkey-Patch the `forward()` function of the featurizer to ensure FSDP-compatibility
@@ -179,6 +185,69 @@ class TimmViTBackbone(VisionBackbone, ABC):
 
         else:
             raise ValueError(f"Image Resize Strategy `{self.image_resize_strategy}` is not supported!")
+
+    @staticmethod
+    def _resolve_local_checkpoint(local_path: str) -> Path:
+        path = Path(local_path)
+        if not path.exists():
+            raise ValueError(f"Local TIMM checkpoint path `{local_path}` does not exist!")
+        if path.is_file():
+            return path
+
+        candidates = []
+        for pattern in ("*.safetensors", "*.bin", "*.pth", "*.pt"):
+            candidates.extend(sorted(path.glob(pattern)))
+
+        if not candidates:
+            raise ValueError(f"No checkpoint file found under local TIMM path `{local_path}`.")
+
+        priority = ("model.safetensors", "pytorch_model.bin", "open_clip_model.safetensors", "model.bin")
+        for preferred_name in priority:
+            for candidate in candidates:
+                if candidate.name == preferred_name:
+                    return candidate
+
+        return candidates[0]
+
+    @staticmethod
+    def _normalize_state_dict(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        if "state_dict" in state_dict and isinstance(state_dict["state_dict"], dict):
+            state_dict = state_dict["state_dict"]
+        elif "model" in state_dict and isinstance(state_dict["model"], dict):
+            state_dict = state_dict["model"]
+
+        normalized = {}
+        for key, value in state_dict.items():
+            new_key = key
+            for prefix in ("module.", "model.", "visual.", "backbone."):
+                if new_key.startswith(prefix):
+                    new_key = new_key[len(prefix) :]
+            normalized[new_key] = value
+
+        return normalized
+
+    def _load_local_weights(self, local_path: str) -> None:
+        checkpoint_path = self._resolve_local_checkpoint(local_path)
+        if checkpoint_path.suffix == ".safetensors":
+            try:
+                from safetensors.torch import load_file
+            except ImportError as exc:
+                raise ImportError(
+                    "Loading local `.safetensors` weights requires `safetensors` to be installed."
+                ) from exc
+
+            state_dict = load_file(str(checkpoint_path))
+        else:
+            state_dict = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+
+        missing, unexpected = self.featurizer.load_state_dict(self._normalize_state_dict(state_dict), strict=False)
+        non_trivial_missing = [key for key in missing if "attn_mask" not in key]
+        if non_trivial_missing:
+            raise ValueError(
+                f"Missing keys when loading local TIMM checkpoint `{checkpoint_path}`: {non_trivial_missing}"
+            )
+        if unexpected:
+            raise ValueError(f"Unexpected keys when loading local TIMM checkpoint `{checkpoint_path}`: {unexpected}")
 
     def get_fsdp_wrapping_policy(self) -> Callable:
         """Return a simple FSDP policy that wraps each ViT block and then the _entire_ featurizer."""

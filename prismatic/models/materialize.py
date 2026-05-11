@@ -101,6 +101,7 @@ def get_vision_backbone_and_transform(
     vision_backbone_id: str,
     image_resize_strategy: str,
     checkpoint_path: Optional[str] = None,
+    siglip_local_path: Optional[str] = None,
 ) -> Tuple[VisionBackbone, ImageTransform]:
     """Instantiate a Vision Backbone, returning both the nn.Module wrapper class and default Image Transform."""
     if vision_backbone_id in VISION_BACKBONES:
@@ -108,6 +109,10 @@ def get_vision_backbone_and_transform(
         vision_kwargs = dict(vision_cfg["kwargs"])
         if checkpoint_path is not None:
             vision_kwargs["checkpoint_path"] = checkpoint_path
+        if siglip_local_path is not None and vision_cfg["cls"] in {SigLIPViTBackbone, JEPASigLIPViTBackbone}:
+            vision_kwargs["local_path" if vision_cfg["cls"] is SigLIPViTBackbone else "siglip_local_path"] = (
+                siglip_local_path
+            )
         vision_backbone: VisionBackbone = vision_cfg["cls"](vision_backbone_id, image_resize_strategy, **vision_kwargs)
         image_transform = vision_backbone.get_image_transform()
         return vision_backbone, image_transform

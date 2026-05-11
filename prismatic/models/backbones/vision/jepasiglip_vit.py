@@ -44,6 +44,7 @@ class JEPASigLIPViTBackbone(VisionBackbone):
         image_resize_strategy: str,
         default_image_size: int = 384,
         checkpoint_path: Optional[str] = None,
+        siglip_local_path: Optional[str] = None,
     ) -> None:
         if vision_backbone_id not in JEPASigLIP_VISION_BACKBONES:
             raise ValueError(f"JEPA+SigLIP backbone `{vision_backbone_id}` is not supported!")
@@ -62,6 +63,7 @@ class JEPASigLIPViTBackbone(VisionBackbone):
             str(cfg["siglip"]),
             image_resize_strategy=image_resize_strategy,
             default_image_size=default_image_size,
+            local_path=siglip_local_path,
         )
 
         self.image_transform = JEPASigLIPImageTransform(

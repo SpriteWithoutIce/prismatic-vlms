@@ -156,6 +156,7 @@ def pretrain(cfg: PretrainConfig) -> None:
         cfg.model.vision_backbone_id,
         image_resize_strategy=cfg.model.image_resize_strategy,
         checkpoint_path=cfg.model.vision_checkpoint_path,
+        siglip_local_path=cfg.model.siglip_local_path,
     )
 
     # Load LLM Backbone --> on CPU, in Full Precision (initializing Tokenizer + handling special tokens if necessary)

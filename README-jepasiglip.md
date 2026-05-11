@@ -47,7 +47,7 @@ The default launcher is now [scripts/run.sh](/home/handoff/Desktop/prismatic-vlm
 Important runtime inputs:
 
 - `--model.vision_checkpoint_path` still points to the local V-JEPA checkpoint
-- SigLIP is loaded using the repo's default `timm` pretrained path
+- `--model.siglip_local_path` can point to a local SigLIP checkpoint directory or file
 - `--stage finetune` keeps the existing one-stage Prismatic/Qwen workflow
 
 ## Constraints
