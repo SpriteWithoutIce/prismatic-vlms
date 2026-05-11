@@ -23,6 +23,7 @@ from prismatic.models.backbones.vision import (
     DinoV2ViTBackbone,
     ImageTransform,
     IN1KViTBackbone,
+    JEPASigLIPViTBackbone,
     SigLIPViTBackbone,
     VJEPA21ViTBackbone,
     VisionBackbone,
@@ -54,6 +55,7 @@ VISION_BACKBONES = {
     # === Fused Backbones ===
     "dinoclip-vit-l-336px": {"cls": DinoCLIPViTBackbone, "kwargs": {"default_image_size": 336}},
     "dinosiglip-vit-so-384px": {"cls": DinoSigLIPViTBackbone, "kwargs": {"default_image_size": 384}},
+    "jepasiglip-vit-l-so-384px": {"cls": JEPASigLIPViTBackbone, "kwargs": {"default_image_size": 384}},
 
     # === V-JEPA 2.1 Backbones ===
     "vjepa2_1-vit-b-384px": {"cls": VJEPA21ViTBackbone, "kwargs": {"default_image_size": 384}},

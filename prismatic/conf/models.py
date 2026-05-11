@@ -546,6 +546,14 @@ class Prism_Qwen25_0_5B_VJEPA21_ViTGigantic_384px(Prism_Qwen25_0_5B_VJEPA21_384p
     model_id: str = "prism-qwen25-vjepa21-vitG-384px+0_5b"
     vision_backbone_id: str = "vjepa2_1-vit-G-384px"
 
+
+@dataclass
+class Prism_Qwen25_0_5B_JEPASigLIP_384px(Prism_Qwen25_0_5B_VJEPA21_384px):
+    model_id: str = "prism-jepasiglip+0_5b"
+    vision_backbone_id: str = "jepasiglip-vit-l-so-384px"
+    arch_specifier: str = "no-align+fused-gelu-mlp"
+
+
 # === Define a Model Registry Enum for Reference & Validation ===
 @unique
 class ModelRegistry(Enum):
@@ -629,6 +637,7 @@ class ModelRegistry(Enum):
     PRISM_QWEN25_VJEPA21_VITL_384PX_0_5B = Prism_Qwen25_0_5B_VJEPA21_ViTL_384px
     PRISM_QWEN25_VJEPA21_VITG_384PX_0_5B = Prism_Qwen25_0_5B_VJEPA21_ViTG_384px
     PRISM_QWEN25_VJEPA21_VITGIGANTIC_384PX_0_5B = Prism_Qwen25_0_5B_VJEPA21_ViTGigantic_384px
+    PRISM_JEPASIGLIP_384PX_0_5B = Prism_Qwen25_0_5B_JEPASigLIP_384px
 
     @property
     def model_id(self) -> str:
