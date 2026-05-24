@@ -1,4 +1,5 @@
 from .base_vision import ImageTransform, VisionBackbone
+from .jepadino_vit import JEPADinoViTBackbone
 from .jepasiglip_vit import JEPASigLIPViTBackbone
 from .clip_vit import CLIPViTBackbone
 from .dinoclip_vit import DinoCLIPViTBackbone
