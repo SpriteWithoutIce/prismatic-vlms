@@ -1,5 +1,5 @@
 torchrun --standalone --nnodes 1 --nproc-per-node 8 scripts/pretrain.py \
-    --model.type prism-jepadino+0_5b \
+    --model.type prism-qwen25-extra-vjepa21-384px+0_5b \
     --dataset.type llava-v15 \
     --dataset.dataset_root_dir /ssd/linyihan/datasets \
     --model.vision_checkpoint_path /ssd/linyihan/ckpt/vjepa2_1_vitl_dist_vitG_384.pt \
@@ -8,5 +8,5 @@ torchrun --standalone --nnodes 1 --nproc-per-node 8 scripts/pretrain.py \
     --model.finetune_per_device_batch_size 4 \
     --run_root_dir ./runs \
     --trackers '["jsonl", "wandb"]' \
-    --wandb_project JEPA_DINO_pretrain \
+    --wandb_project VJEPA_Qwen25_Extra_pretrain \
     --wandb_entity 22373442

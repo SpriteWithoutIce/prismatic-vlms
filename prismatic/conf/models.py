@@ -525,6 +525,12 @@ class Prism_Qwen25_0_5B_VJEPA21_384px(Exp_7B_One_Stage):
 
 
 @dataclass
+class Prism_Qwen25_0_5B_Extra_VJEPA21_384px(Prism_Qwen25_0_5B_VJEPA21_384px):
+    model_id: str = "prism-qwen25-extra-vjepa21-384px+0_5b"
+    llm_backbone_id: str = "qwen25-0_5b-extra"
+
+
+@dataclass
 class Prism_Qwen25_0_5B_VJEPA21_ViTB_384px(Prism_Qwen25_0_5B_VJEPA21_384px):
     model_id: str = "prism-qwen25-vjepa21-vitb-384px+0_5b"
     vision_backbone_id: str = "vjepa2_1-vit-b-384px"
@@ -641,6 +647,7 @@ class ModelRegistry(Enum):
     PRISM_QWEN25_DINOSIGLIP_224PX_0_5B = Prism_Qwen25_0_5B_DINOSigLIP_224px
     PRISM_QWEN25_EXTRA_DINOSIGLIP_224PX_0_5B = Prism_Qwen25_0_5B_Extra_DINOSigLIP_224px
     PRISM_QWEN25_VJEPA21_384PX_0_5B = Prism_Qwen25_0_5B_VJEPA21_384px
+    PRISM_QWEN25_EXTRA_VJEPA21_384PX_0_5B = Prism_Qwen25_0_5B_Extra_VJEPA21_384px
     PRISM_QWEN25_VJEPA21_VITB_384PX_0_5B = Prism_Qwen25_0_5B_VJEPA21_ViTB_384px
     PRISM_QWEN25_VJEPA21_VITL_384PX_0_5B = Prism_Qwen25_0_5B_VJEPA21_ViTL_384px
     PRISM_QWEN25_VJEPA21_VITG_384PX_0_5B = Prism_Qwen25_0_5B_VJEPA21_ViTG_384px
