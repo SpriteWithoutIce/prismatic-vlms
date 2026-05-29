@@ -568,6 +568,42 @@ class Prism_Qwen25_0_5B_JEPADINO_384px(Prism_Qwen25_0_5B_VJEPA21_384px):
     arch_specifier: str = "no-align+fused-gelu-mlp"
 
 
+@dataclass
+class Prism_Qwen3_1_7B_VJEPA21_384px(Exp_7B_One_Stage):
+    model_id: str = "prism-qwen3-vjepa21-384px+1_7b"
+    vision_backbone_id: str = "vjepa2_1-vit-l-384px"
+    image_resize_strategy: str = "resize-naive"
+    llm_backbone_id: str = "qwen3-1_7b-pure"
+    arch_specifier: str = "no-align+gelu-mlp"
+    finetune_epochs: int = 2
+
+    llm_max_length: int = 32768
+
+
+@dataclass
+class Prism_Qwen3_1_7B_VJEPA21_ViTB_384px(Prism_Qwen3_1_7B_VJEPA21_384px):
+    model_id: str = "prism-qwen3-vjepa21-vitb-384px+1_7b"
+    vision_backbone_id: str = "vjepa2_1-vit-b-384px"
+
+
+@dataclass
+class Prism_Qwen3_1_7B_VJEPA21_ViTL_384px(Prism_Qwen3_1_7B_VJEPA21_384px):
+    model_id: str = "prism-qwen3-vjepa21-vitl-384px+1_7b"
+    vision_backbone_id: str = "vjepa2_1-vit-l-384px"
+
+
+@dataclass
+class Prism_Qwen3_1_7B_VJEPA21_ViTG_384px(Prism_Qwen3_1_7B_VJEPA21_384px):
+    model_id: str = "prism-qwen3-vjepa21-vitg-384px+1_7b"
+    vision_backbone_id: str = "vjepa2_1-vit-g-384px"
+
+
+@dataclass
+class Prism_Qwen3_1_7B_VJEPA21_ViTGigantic_384px(Prism_Qwen3_1_7B_VJEPA21_384px):
+    model_id: str = "prism-qwen3-vjepa21-vitG-384px+1_7b"
+    vision_backbone_id: str = "vjepa2_1-vit-G-384px"
+
+
 # === Define a Model Registry Enum for Reference & Validation ===
 @unique
 class ModelRegistry(Enum):
@@ -654,6 +690,11 @@ class ModelRegistry(Enum):
     PRISM_QWEN25_VJEPA21_VITGIGANTIC_384PX_0_5B = Prism_Qwen25_0_5B_VJEPA21_ViTGigantic_384px
     PRISM_JEPADINO_384PX_0_5B = Prism_Qwen25_0_5B_JEPADINO_384px
     PRISM_JEPASIGLIP_384PX_0_5B = Prism_Qwen25_0_5B_JEPASigLIP_384px
+    PRISM_QWEN3_VJEPA21_384PX_1_7B = Prism_Qwen3_1_7B_VJEPA21_384px
+    PRISM_QWEN3_VJEPA21_VITB_384PX_1_7B = Prism_Qwen3_1_7B_VJEPA21_ViTB_384px
+    PRISM_QWEN3_VJEPA21_VITL_384PX_1_7B = Prism_Qwen3_1_7B_VJEPA21_ViTL_384px
+    PRISM_QWEN3_VJEPA21_VITG_384PX_1_7B = Prism_Qwen3_1_7B_VJEPA21_ViTG_384px
+    PRISM_QWEN3_VJEPA21_VITGIGANTIC_384PX_1_7B = Prism_Qwen3_1_7B_VJEPA21_ViTGigantic_384px
 
     @property
     def model_id(self) -> str:

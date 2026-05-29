@@ -14,6 +14,7 @@ from prismatic.models.backbones.llm import (
     LLMBackbone,
     MistralLLMBackbone,
     PhiLLMBackbone,
+    Qwen3LLMBackbone,
     Qwen25LLMBackbone,
 )
 from prismatic.models.backbones.vision import (
@@ -94,6 +95,9 @@ LLM_BACKBONES = {
     "qwen25-1_5b-pure": {"cls": Qwen25LLMBackbone, "kwargs": {}},
     "qwen25-3b-pure": {"cls": Qwen25LLMBackbone, "kwargs": {}},
     "qwen25-7b-pure": {"cls": Qwen25LLMBackbone, "kwargs": {}},
+
+    # === Qwen3 Backbone ===
+    "qwen3-1_7b-pure": {"cls": Qwen3LLMBackbone, "kwargs": {}},
 }
 
 # fmt: on

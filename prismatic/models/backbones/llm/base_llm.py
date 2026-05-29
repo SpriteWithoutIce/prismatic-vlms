@@ -123,10 +123,6 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
             overwatch.info(f"Loading [bold]{llm_family}[/] LLM from [underline]`{self.llm_path}`[/]", ctx_level=1)
             pretrained_kwargs = {
                 "token": hf_token,
-                # The following parameters are set to prevent `UserWarnings` from HF; we want greedy decoding!
-                "do_sample": False,
-                "temperature": 1.0,
-                "top_p": 1.0,
             }
 
             if use_flash_attention_2:
@@ -173,6 +169,13 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
         #      Reference: https://discuss.huggingface.co/t/what-is-the-purpose-of-use-cache-in-decoder/958
         self.llm.config.use_cache = False if not self.inference_mode else True
 
+        # Newer Transformers model classes may reject generation kwargs in `from_pretrained`, so
+        # set conservative greedy defaults on the generation config after loading instead.
+        if hasattr(self.llm, "generation_config") and self.llm.generation_config is not None:
+            self.llm.generation_config.do_sample = False
+            self.llm.generation_config.temperature = 1.0
+            self.llm.generation_config.top_p = 1.0
+
         #   => Turns out that when gradient checkpointing is on and the underlying LLM has no "trainable" parameters
         #      (requires_grad is False), backprop will fail; setting `enable_input_requires_grad()` registers a new
         #      forward hook that fixes this =>> also totally safe for the "full finetuning" setting!
@@ -204,6 +207,7 @@ class HFCausalLLMBackbone(LLMBackbone, ABC):
             "qwen25-1_5b-pure",
             "qwen25-3b-pure",
             "qwen25-7b-pure",
+            "qwen3-1_7b-pure",
         }
         if self.identifier in SPECIAL_CASES:
             return
