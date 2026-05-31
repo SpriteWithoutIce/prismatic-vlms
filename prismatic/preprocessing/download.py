@@ -8,7 +8,7 @@ import os
 import shutil
 from pathlib import Path
 from typing import Dict, List, TypedDict
-from zipfile import ZipFile
+from zipfile import BadZipFile, ZipFile
 
 import requests
 from PIL import Image
@@ -124,34 +124,108 @@ def convert_to_jpg(image_dir: Path) -> None:
             raise ValueError(f"Unexpected image format `{image_fn.suffix}`")
 
 
+def is_valid_zip(archive_path: Path) -> bool:
+    """Return whether a zip archive can be opened and passes CRC checks."""
+    try:
+        with ZipFile(archive_path) as zf:
+            return zf.testzip() is None
+    except (BadZipFile, OSError):
+        return False
+
+
+def get_remote_file_metadata(url: str) -> tuple[int | None, bool]:
+    """Return `(content_length, supports_range_requests)` for a remote file when available."""
+    response = requests.head(url, allow_redirects=True)
+    try:
+        response.raise_for_status()
+
+        expected_bytes = response.headers.get("content-length")
+        expected_bytes = None if expected_bytes is None else int(expected_bytes)
+        supports_range_requests = "bytes" in response.headers.get("accept-ranges", "").lower()
+        return expected_bytes, supports_range_requests
+    finally:
+        response.close()
+
+
 def download_with_progress(url: str, download_dir: Path, chunk_size_bytes: int = 1024) -> Path:
     """Utility function for downloading files from the internet, with a handy Rich-based progress bar."""
     overwatch.info(f"Downloading {(dest_path := download_dir / Path(url).name)} from `{url}`", ctx_level=1)
+    partial_path = dest_path.with_suffix(f"{dest_path.suffix}.part")
+    expected_bytes, supports_range_requests = get_remote_file_metadata(url)
+
+    def file_looks_complete(path: Path) -> bool:
+        size_matches = expected_bytes is None or path.stat().st_size == expected_bytes
+        zip_is_valid = dest_path.suffix != ".zip" or is_valid_zip(path)
+        return size_matches and zip_is_valid
+
     if dest_path.exists():
-        return dest_path
+        if file_looks_complete(dest_path):
+            return dest_path
 
-    # Otherwise --> fire an HTTP Request, with `stream = True`
-    response = requests.get(url, stream=True)
+        existing_size = dest_path.stat().st_size
+        if expected_bytes is not None and existing_size < expected_bytes and not partial_path.exists():
+            overwatch.info(f"Existing file `{dest_path}` appears incomplete; resuming from it.", ctx_level=1)
+            dest_path.rename(partial_path)
+        else:
+            overwatch.info(f"Existing file `{dest_path}` appears invalid; re-downloading.", ctx_level=1)
+            dest_path.unlink()
 
-    # Download w/ Transfer-Aware Progress
-    #   => Reference: https://github.com/Textualize/rich/blob/master/examples/downloader.py
-    with Progress(
-        TextColumn("[bold]{task.description} - {task.fields[fname]}"),
-        BarColumn(bar_width=None),
-        "[progress.percentage]{task.percentage:>3.1f}%",
-        "•",
-        DownloadColumn(),
-        "•",
-        TransferSpeedColumn(),
-        transient=True,
-    ) as dl_progress:
-        dl_tid = dl_progress.add_task(
-            "Downloading", fname=dest_path.name, total=int(response.headers.get("content-length", "None"))
-        )
-        with open(dest_path, "wb") as f:
-            for data in response.iter_content(chunk_size=chunk_size_bytes):
-                dl_progress.advance(dl_tid, f.write(data))
+    if partial_path.exists():
+        partial_size = partial_path.stat().st_size
 
+        if expected_bytes is not None and partial_size > expected_bytes:
+            overwatch.info(f"Removing oversized partial download `{partial_path}`", ctx_level=1)
+            partial_path.unlink()
+        elif expected_bytes is not None and partial_size == expected_bytes:
+            if file_looks_complete(partial_path):
+                partial_path.rename(dest_path)
+                return dest_path
+
+            overwatch.info(f"Existing partial download `{partial_path}` is corrupted; re-downloading.", ctx_level=1)
+            partial_path.unlink()
+
+    resume_from = partial_path.stat().st_size if partial_path.exists() else 0
+    request_headers = {"Range": f"bytes={resume_from}-"} if resume_from > 0 and supports_range_requests else {}
+    if resume_from > 0 and request_headers:
+        overwatch.info(f"Resuming download from byte {resume_from}", ctx_level=1)
+
+    response = requests.get(url, stream=True, headers=request_headers)
+    try:
+        response.raise_for_status()
+
+        write_mode = "ab" if resume_from > 0 and response.status_code == 206 else "wb"
+        if resume_from > 0 and response.status_code != 206:
+            overwatch.info("Remote host does not support resume for this file; restarting full download.", ctx_level=1)
+            resume_from = 0
+
+        # Download w/ Transfer-Aware Progress
+        #   => Reference: https://github.com/Textualize/rich/blob/master/examples/downloader.py
+        with Progress(
+            TextColumn("[bold]{task.description} - {task.fields[fname]}"),
+            BarColumn(bar_width=None),
+            "[progress.percentage]{task.percentage:>3.1f}%",
+            "•",
+            DownloadColumn(),
+            "•",
+            TransferSpeedColumn(),
+            transient=True,
+        ) as dl_progress:
+            response_bytes = response.headers.get("content-length")
+            response_bytes = None if response_bytes is None else int(response_bytes)
+            total_bytes = expected_bytes if expected_bytes is not None else None
+            if total_bytes is None and response_bytes is not None:
+                total_bytes = resume_from + response_bytes
+
+            dl_tid = dl_progress.add_task("Downloading", fname=dest_path.name, total=total_bytes, completed=resume_from)
+            with open(partial_path, write_mode) as f:
+                for data in response.iter_content(chunk_size=chunk_size_bytes):
+                    if not data:
+                        continue
+                    dl_progress.advance(dl_tid, f.write(data))
+    finally:
+        response.close()
+
+    partial_path.rename(dest_path)
     return dest_path
 
 
