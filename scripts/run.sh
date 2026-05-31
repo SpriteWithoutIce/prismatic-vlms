@@ -1,4 +1,4 @@
-# export CUDA_VISIBLE_DEVICES=0,1,2,3
+export CUDA_VISIBLE_DEVICES=4,5,6,7
 torchrun --standalone --nnodes 1 --nproc-per-node 8 scripts/pretrain.py \
     --model.type prism-qwen3-vjepa21-vitl-384px+1_7b \
     --dataset.type llava-v15 \
