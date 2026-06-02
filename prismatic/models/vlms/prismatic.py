@@ -25,7 +25,7 @@ from prismatic.models.backbones.llm.prompting import PromptBuilder
 from prismatic.models.backbones.vision import VisionBackbone
 from prismatic.models.vlms.base_vlm import VLM
 from prismatic.overwatch import initialize_overwatch
-from prismatic.util.nn_utils import FusedMLPProjector, LinearProjector, MLPProjector
+from prismatic.util.nn_utils import FusedFANProjector, FusedMLPProjector, LinearProjector, MLPProjector
 
 # Initialize Overwatch =>> Wraps `logging.Logger`
 overwatch = initialize_overwatch(__name__)
@@ -64,6 +64,8 @@ class PrismaticVLM(VLM):
             self.projector = FusedMLPProjector(vision_backbone.embed_dim, llm_backbone.embed_dim)
         elif arch_specifier.endswith("gelu-mlp"):
             self.projector = MLPProjector(vision_backbone.embed_dim, llm_backbone.embed_dim)
+        elif arch_specifier.endswith("fusedfan-projector"):
+            self.projector = FusedFANProjector(vision_backbone.embed_dim, llm_backbone.embed_dim)
         else:
             raise ValueError(f"PrismaticVLM with `{arch_specifier = }` is not supported!")
 
@@ -290,7 +292,7 @@ class PrismaticVLM(VLM):
         # Get Prismatic Wrapping Policy =>> just a module wrapping policy around `self.projector`
         prismatic_fsdp_wrapping_policy = partial(
             _module_wrap_policy,
-            module_classes={LinearProjector, MLPProjector, FusedMLPProjector},
+            module_classes={LinearProjector, MLPProjector, FusedMLPProjector, FusedFANProjector},
         )
 
         # Return union (_or_) over constituent policies
