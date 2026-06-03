@@ -1,9 +1,9 @@
-export CUDA_VISIBLE_DEVICES=4,5,6,7
-torchrun --standalone --nnodes 1 --nproc-per-node 4 scripts/pretrain.py \
-    --model.type prism-qwen25-vjepa21-vitg-384px+0_5b \
-    --dataset.type llava-v15 \
+# export CUDA_VISIBLE_DEVICES=4,5,6,7
+torchrun --standalone --nnodes 1 --nproc-per-node 8 scripts/pretrain.py \
+    --model.type "prism-qwen25-vjepa21-vitl-384px+0_5b+fusedfan-projector" \
+    --dataset.type "llava-lvis4v-lrv" \
     --dataset.dataset_root_dir /ssd/linyihan/datasets \
-    --model.vision_checkpoint_path /ssd/linyihan/ckpt/vjepa2_1_vitg_384.pt \
+    --model.vision_checkpoint_path /ssd/linyihan/ckpt/vjepa2_1_vitl_dist_vitG_384.pt \
     --model.llm_local_path /ssd/linyihan/ckpt/Qwen2.5-0.5B \
     --stage finetune \
     --model.finetune_per_device_batch_size 4 \
@@ -12,3 +12,4 @@ torchrun --standalone --nnodes 1 --nproc-per-node 4 scripts/pretrain.py \
     --trackers '["jsonl", "wandb"]' \
     --wandb_project VJEPA_Qwen25_LLaVA_pretrain \
     --wandb_entity 22373442
+    # --trackers '["jsonl"]' \
