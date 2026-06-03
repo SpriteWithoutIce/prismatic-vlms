@@ -1,7 +1,7 @@
 # export CUDA_VISIBLE_DEVICES=4,5,6,7
 torchrun --standalone --nnodes 1 --nproc-per-node 8 scripts/pretrain.py \
     --model.type "prism-qwen25-vjepa21-vitl-384px+0_5b+fusedfan-projector" \
-    --dataset.type "llava-lvis4v-lrv" \
+    --dataset.type "llava-v15" \
     --dataset.dataset_root_dir /ssd/linyihan/datasets \
     --model.vision_checkpoint_path /ssd/linyihan/ckpt/vjepa2_1_vitl_dist_vitG_384.pt \
     --model.llm_local_path /ssd/linyihan/ckpt/Qwen2.5-0.5B \
