@@ -556,6 +556,12 @@ class Prism_Qwen25_0_5B_VJEPA21_ViTG_384px(Prism_Qwen25_0_5B_VJEPA21_384px):
 
 
 @dataclass
+class Prism_Qwen25_0_5B_VJEPA21_ViTG_384px_FusedFAN(Prism_Qwen25_0_5B_VJEPA21_ViTG_384px):
+    model_id: str = "prism-qwen25-vjepa21-vitg-384px+0_5b+fusedfan-projector"
+    arch_specifier: str = "no-align+fusedfan-projector"
+
+
+@dataclass
 class Prism_Qwen25_0_5B_VJEPA21_ViTGigantic_384px(Prism_Qwen25_0_5B_VJEPA21_384px):
     model_id: str = "prism-qwen25-vjepa21-vitG-384px+0_5b"
     vision_backbone_id: str = "vjepa2_1-vit-G-384px"
@@ -695,6 +701,7 @@ class ModelRegistry(Enum):
     PRISM_QWEN25_VJEPA21_VITL_384PX_0_5B = Prism_Qwen25_0_5B_VJEPA21_ViTL_384px
     PRISM_QWEN25_VJEPA21_VITL_384PX_0_5B_FUSEDFAN = Prism_Qwen25_0_5B_VJEPA21_ViTL_384px_FusedFAN
     PRISM_QWEN25_VJEPA21_VITG_384PX_0_5B = Prism_Qwen25_0_5B_VJEPA21_ViTG_384px
+    PRISM_QWEN25_VJEPA21_VITG_384PX_0_5B_FUSEDFAN = Prism_Qwen25_0_5B_VJEPA21_ViTG_384px_FusedFAN
     PRISM_QWEN25_VJEPA21_VITGIGANTIC_384PX_0_5B = Prism_Qwen25_0_5B_VJEPA21_ViTGigantic_384px
     PRISM_JEPADINO_384PX_0_5B = Prism_Qwen25_0_5B_JEPADINO_384px
     PRISM_JEPASIGLIP_384PX_0_5B = Prism_Qwen25_0_5B_JEPASigLIP_384px
