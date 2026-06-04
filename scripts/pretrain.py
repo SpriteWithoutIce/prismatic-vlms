@@ -163,23 +163,32 @@ def pretrain(cfg: PretrainConfig) -> None:
 
     # Load LLM Backbone --> on CPU, in Full Precision (initializing Tokenizer + handling special tokens if necessary)
     overwatch.info(f"Loading Pretrained LLM [bold]{cfg.model.llm_backbone_id}[/] via HF Transformers")
-    llm_kwargs = {
-        "llm_max_length": cfg.model.llm_max_length,
-        "hf_token": hf_token,
-    }
-
     llm_registry = get_llm_backbone_and_tokenizer.__globals__.get("LLM_BACKBONES", {})
     llm_cfg = llm_registry.get(cfg.model.llm_backbone_id)
     if llm_cfg is not None:
-        llm_cfg["kwargs"] = {k: v for k, v in llm_cfg["kwargs"].items() if k != "llm_path"}
+        llm_init_params = signature(llm_cfg["cls"].__init__).parameters
+        reserved_kwargs = {"llm_path", "llm_max_length", "hf_token", "inference_mode"}
+        llm_cls_kwargs = {k: v for k, v in llm_cfg["kwargs"].items() if k not in reserved_kwargs}
 
-    if "llm_path" in signature(get_llm_backbone_and_tokenizer).parameters:
-        llm_kwargs["llm_path"] = cfg.model.llm_local_path
-    elif cfg.model.llm_local_path is not None:
-        if llm_cfg is not None and "llm_path" in signature(llm_cfg["cls"].__init__).parameters:
-            llm_cfg["kwargs"] = {**llm_cfg["kwargs"], "llm_path": cfg.model.llm_local_path}
+        if "llm_path" in llm_init_params:
+            llm_cls_kwargs["llm_path"] = cfg.model.llm_local_path
+        if "llm_max_length" in llm_init_params:
+            llm_cls_kwargs["llm_max_length"] = cfg.model.llm_max_length
+        if "hf_token" in llm_init_params:
+            llm_cls_kwargs["hf_token"] = hf_token
+        if "inference_mode" in llm_init_params:
+            llm_cls_kwargs["inference_mode"] = False
 
-    llm_backbone, tokenizer = get_llm_backbone_and_tokenizer(cfg.model.llm_backbone_id, **llm_kwargs)
+        llm_backbone = llm_cfg["cls"](cfg.model.llm_backbone_id, **llm_cls_kwargs)
+        tokenizer = llm_backbone.get_tokenizer()
+    else:
+        llm_kwargs = {
+            "llm_max_length": cfg.model.llm_max_length,
+            "hf_token": hf_token,
+        }
+        if "llm_path" in signature(get_llm_backbone_and_tokenizer).parameters:
+            llm_kwargs["llm_path"] = cfg.model.llm_local_path
+        llm_backbone, tokenizer = get_llm_backbone_and_tokenizer(cfg.model.llm_backbone_id, **llm_kwargs)
 
     # Create VLM => wraps `vision_backbone` and `llm`
     overwatch.info(f"Instantiating PrismaticVLM `{model_id}` for Training Stage = `{cfg.stage}`")
