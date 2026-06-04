@@ -24,6 +24,7 @@ Run with:
 import json
 import os
 from dataclasses import dataclass, field
+from inspect import signature
 from pathlib import Path
 from typing import Optional, Tuple, Union
 
@@ -162,12 +163,20 @@ def pretrain(cfg: PretrainConfig) -> None:
 
     # Load LLM Backbone --> on CPU, in Full Precision (initializing Tokenizer + handling special tokens if necessary)
     overwatch.info(f"Loading Pretrained LLM [bold]{cfg.model.llm_backbone_id}[/] via HF Transformers")
-    llm_backbone, tokenizer = get_llm_backbone_and_tokenizer(
-        cfg.model.llm_backbone_id,
-        llm_max_length=cfg.model.llm_max_length,
-        llm_path=cfg.model.llm_local_path,
-        hf_token=hf_token,
-    )
+    llm_kwargs = {
+        "llm_max_length": cfg.model.llm_max_length,
+        "hf_token": hf_token,
+    }
+    if "llm_path" in signature(get_llm_backbone_and_tokenizer).parameters:
+        llm_kwargs["llm_path"] = cfg.model.llm_local_path
+    elif cfg.model.llm_local_path is not None:
+        import prismatic.models.materialize as model_materialize
+
+        llm_cfg = model_materialize.LLM_BACKBONES.get(cfg.model.llm_backbone_id)
+        if llm_cfg is not None and "llm_path" in signature(llm_cfg["cls"].__init__).parameters:
+            llm_cfg["kwargs"] = {**llm_cfg["kwargs"], "llm_path": cfg.model.llm_local_path}
+
+    llm_backbone, tokenizer = get_llm_backbone_and_tokenizer(cfg.model.llm_backbone_id, **llm_kwargs)
 
     # Create VLM => wraps `vision_backbone` and `llm`
     overwatch.info(f"Instantiating PrismaticVLM `{model_id}` for Training Stage = `{cfg.stage}`")
