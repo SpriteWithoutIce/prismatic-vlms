@@ -167,9 +167,9 @@ def pretrain(cfg: PretrainConfig) -> None:
         "llm_max_length": cfg.model.llm_max_length,
         "hf_token": hf_token,
     }
-    import prismatic.models.materialize as model_materialize
 
-    llm_cfg = model_materialize.LLM_BACKBONES.get(cfg.model.llm_backbone_id)
+    llm_registry = get_llm_backbone_and_tokenizer.__globals__.get("LLM_BACKBONES", {})
+    llm_cfg = llm_registry.get(cfg.model.llm_backbone_id)
     if llm_cfg is not None:
         llm_cfg["kwargs"] = {k: v for k, v in llm_cfg["kwargs"].items() if k != "llm_path"}
 
