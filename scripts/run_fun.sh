@@ -1,5 +1,5 @@
 # export CUDA_VISIBLE_DEVICES=4,5,6,7
-torchrun --standalone --nnodes 1 --nproc-per-node 8 scripts/pretrain.py \
+torchrun --standalone --nnodes 1 --nproc-per-node 4 scripts/pretrain.py \
     --model.type "prism-qwen25-vjepa21-vitg-384px+0_5b" \
     --dataset.type "llava-v15" \
     --dataset.dataset_root_dir /ssd/linyihan/datasets \
@@ -9,7 +9,8 @@ torchrun --standalone --nnodes 1 --nproc-per-node 8 scripts/pretrain.py \
     --model.finetune_per_device_batch_size 4 \
     --model.finetune_global_batch_size 32 \
     --run_root_dir ./runs \
-    --trackers '["jsonl", "wandb"]' \
-    --wandb_project VJEPA_Qwen25_LLaVA_pretrain \
-    --wandb_entity 22373442
+    --trackers '["jsonl"]' \
+    # --trackers '["jsonl", "wandb"]' \
+    # --wandb_project VJEPA_Qwen25_LLaVA_pretrain \
+    # --wandb_entity 22373442
     # --trackers '["jsonl"]' \
