@@ -74,6 +74,7 @@ class ModelConfig(ChoiceRegistry):
     vision_checkpoint_path: Optional[str] = None            # Optional local checkpoint path for custom vision backbones
     siglip_local_path: Optional[str] = None                 # Optional local path/file for SigLIP TIMM checkpoints
     llm_local_path: Optional[str] = None                    # Optional local model path for custom/local LLM loading
+    image_sequence_len: int = 1                             # Number of images/frames per visual sample
 
     # fmt: on
 

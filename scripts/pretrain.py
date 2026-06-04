@@ -155,6 +155,7 @@ def pretrain(cfg: PretrainConfig) -> None:
     vision_backbone, image_transform = get_vision_backbone_and_transform(
         cfg.model.vision_backbone_id,
         image_resize_strategy=cfg.model.image_resize_strategy,
+        image_sequence_len=cfg.model.image_sequence_len,
         checkpoint_path=cfg.model.vision_checkpoint_path,
         siglip_local_path=cfg.model.siglip_local_path,
     )

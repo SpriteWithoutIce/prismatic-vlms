@@ -5,6 +5,7 @@ Factory class for initializing Vision Backbones, LLM Backbones, and VLMs from a 
 individual functions for clear control flow.
 """
 
+from inspect import signature
 from typing import Optional, Tuple
 
 from transformers import PreTrainedTokenizerBase
@@ -106,6 +107,7 @@ LLM_BACKBONES = {
 def get_vision_backbone_and_transform(
     vision_backbone_id: str,
     image_resize_strategy: str,
+    image_sequence_len: int = 1,
     checkpoint_path: Optional[str] = None,
     siglip_local_path: Optional[str] = None,
 ) -> Tuple[VisionBackbone, ImageTransform]:
@@ -113,6 +115,8 @@ def get_vision_backbone_and_transform(
     if vision_backbone_id in VISION_BACKBONES:
         vision_cfg = VISION_BACKBONES[vision_backbone_id]
         vision_kwargs = dict(vision_cfg["kwargs"])
+        if "image_sequence_len" in signature(vision_cfg["cls"].__init__).parameters:
+            vision_kwargs["image_sequence_len"] = image_sequence_len
         if checkpoint_path is not None:
             vision_kwargs["checkpoint_path"] = checkpoint_path
         if siglip_local_path is not None and vision_cfg["cls"] in {SigLIPViTBackbone, JEPASigLIPViTBackbone}:

@@ -85,6 +85,7 @@ def load(
     vision_backbone, image_transform = get_vision_backbone_and_transform(
         model_cfg["vision_backbone_id"],
         model_cfg["image_resize_strategy"],
+        image_sequence_len=model_cfg.get("image_sequence_len", 1),
     )
 
     # Load LLM Backbone --> note `inference_mode = True` by default when calling `load()`
