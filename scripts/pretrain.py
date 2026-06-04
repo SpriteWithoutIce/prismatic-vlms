@@ -167,12 +167,15 @@ def pretrain(cfg: PretrainConfig) -> None:
         "llm_max_length": cfg.model.llm_max_length,
         "hf_token": hf_token,
     }
+    import prismatic.models.materialize as model_materialize
+
+    llm_cfg = model_materialize.LLM_BACKBONES.get(cfg.model.llm_backbone_id)
+    if llm_cfg is not None:
+        llm_cfg["kwargs"] = {k: v for k, v in llm_cfg["kwargs"].items() if k != "llm_path"}
+
     if "llm_path" in signature(get_llm_backbone_and_tokenizer).parameters:
         llm_kwargs["llm_path"] = cfg.model.llm_local_path
     elif cfg.model.llm_local_path is not None:
-        import prismatic.models.materialize as model_materialize
-
-        llm_cfg = model_materialize.LLM_BACKBONES.get(cfg.model.llm_backbone_id)
         if llm_cfg is not None and "llm_path" in signature(llm_cfg["cls"].__init__).parameters:
             llm_cfg["kwargs"] = {**llm_cfg["kwargs"], "llm_path": cfg.model.llm_local_path}
 
