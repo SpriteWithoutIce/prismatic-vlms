@@ -9,8 +9,7 @@ torchrun --standalone --nnodes 1 --nproc-per-node 4 scripts/pretrain.py \
     --model.finetune_per_device_batch_size 4 \
     --model.finetune_global_batch_size 32 \
     --run_root_dir ./runs \
-    --trackers '["jsonl"]' \
-    # --trackers '["jsonl", "wandb"]' \
-    # --wandb_project VJEPA_Qwen25_LLaVA_pretrain \
-    # --wandb_entity 22373442
+    --trackers '["jsonl", "wandb"]' \
+    --wandb_project VJEPA_Qwen25_LLaVA_pretrain \
+    --wandb_entity 22373442
     # --trackers '["jsonl"]' \
